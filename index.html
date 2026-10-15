@@ -81,6 +81,8 @@ main{padding:18px;display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1f
 .cta b{display:block;font-size:17px}
 .cta span{color:#a9c0b6;font-size:13px}
 .cta button{background:var(--g);color:#04170f;border:0;border-radius:10px;padding:11px 18px;font-weight:800}
+#diag{display:none;margin:10px 18px 0;padding:10px 14px;border:1px solid #5a4a1c;background:#241d0a;color:#ffd166;border-radius:12px;font-size:12px;line-height:1.5;cursor:pointer}
+#diag b{color:#fff}
 .pill{font-size:11px;color:#ffd166;border:1px solid #5a4a1c;background:#241d0a;border-radius:99px;padding:3px 9px;white-space:nowrap}
 @media(max-width:1100px){main{grid-template-columns:1fr}.side{grid-column:1;grid-row:auto}.cta{grid-column:1}.grid5{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.shell{grid-template-columns:1fr}nav{flex-direction:row;overflow-x:auto;padding:8px 12px}nav button{white-space:nowrap;padding:9px 12px}.tag{display:none}
@@ -96,6 +98,7 @@ main{padding:18px;display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1f
   <span class="pill" id="status">Loading...</span>
   
 </header>
+<div id="diag" title="Click to set OpenSea API key"></div>
 <div class="shell">
   <nav aria-label="Main">
     <button class="on">&#9889; Radar</button><button>&#128293; Trending</button><button>&#10024; New Mints</button><button>&#128081; Top Collections</button><button>&#128278; Watchlist</button><button>&#128091; Portfolio</button><button>&#9881; Settings</button>
@@ -132,27 +135,43 @@ main{padding:18px;display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1f
 <script>
 /* ===== SETTINGS: edit here ===== */
 var RPC="https://rpc.mainnet.chain.robinhood.com",BLOCKS=3000;
+var OS_KEY="5ce87039c0d04ea1a49990571ea9b83b",          /* <-- ilagay dito ang OpenSea API key mo, e.g. "abc123..." */
+    OS_CHAIN="robinhood"; /* <-- OpenSea chain identifier */
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}}
 var OS="https://api.opensea.io/api/v2",TRANSFER="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",ZERO="0x"+"0".repeat(64);
-function chain(){return ls("chain")||"robinhood"}
-function osget(p){var k=ls("key");if(!k)return Promise.reject(new Error("No OpenSea API key (click the status pill)"));
- return fetch(OS+p,{headers:{"x-api-key":k,accept:"application/json"}}).then(function(r){if(!r.ok)throw new Error("OpenSea "+r.status);return r.json()})}
+function chain(){return ls("chain")||OS_CHAIN}
+function osget(p,tries){tries=tries||0;var k=OS_KEY||ls("key");if(!k)return Promise.reject(new Error("No OpenSea API key set - click this box or the status pill and paste your key"));
+ return fetch(OS+p,{headers:{"x-api-key":k,accept:"application/json"}}).then(function(r){
+  if(r.status===429&&tries<3)return new Promise(function(ok){setTimeout(ok,800*(tries+1))}).then(function(){return osget(p,tries+1)});
+  if(!r.ok)return r.text().then(function(t){var m="";try{m=(JSON.parse(t).errors||[]).join(", ")}catch(e){}throw new Error("OpenSea "+r.status+" on "+p.split("?")[0]+(m?" ("+m+")":""))});
+  return r.json()}).catch(function(e){if(e instanceof TypeError)throw new Error("Cannot reach OpenSea (blocked by CORS / adblock / host that blocks outside requests)");throw e})}
 function rpc(m,p){return fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:m,params:p})}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error.message);return j.result})}
 function short(a){return a.slice(0,6)+"..."+a.slice(-4)}
-function fetchCols(warn){
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function fixImg(u){u=u||"";return u.indexOf("ipfs://")===0?"https://ipfs.io/ipfs/"+u.slice(7):u}
+function mk(slug,name,img,url){return {slug:slug,n:name||slug,img:fixImg(img),fl:0,sym:"ETH",vol:0,ch:0,url:url||""}}
+function enrich(c,warn){
+ var need=(c.img&&c.url)?Promise.resolve():osget("/collections/"+c.slug).then(function(d){c.img=c.img||fixImg(d.image_url);c.url=c.url||d.opensea_url||"";if(c.n===c.slug&&d.name)c.n=d.name}).catch(function(e){warn.push(e.message)});
+ return need.then(function(){return osget("/collections/"+c.slug+"/stats")}).then(function(s){
+  var t=s.total||{},d=(s.intervals||[]).filter(function(i){return i.interval==="one_day"})[0]||{};
+  c.fl=+(t.floor_price||0);c.sym=t.floor_price_symbol||"ETH";c.vol=+(d.volume||0);c.ch=+(d.volume_change||0)*100;return c})
+ .catch(function(e){warn.push(e.message);return c})}
+function seq(list,fn){var out=[],p=Promise.resolve();list.forEach(function(x){p=p.then(function(){return fn(x)}).then(function(r){if(r)out.push(r);return sleep(150)})});return p.then(function(){return out})}
+function fromMints(m,warn){
+ return seq(m,function(x){return osget("/chain/"+encodeURIComponent(chain())+"/contract/"+x[0]).then(function(d){return d.collection?mk(d.collection,d.name,"",""):null}).catch(function(e){warn.push(short(x[0])+": "+e.message);return null})})}
+function fetchCols(warn,mints){
  return osget("/collections/top?sort_by=one_day_volume&chains="+encodeURIComponent(chain())+"&limit=7").then(function(t){
-  return Promise.all((t.collections||[]).map(function(c){var slug=c.collection||c.slug;
-   return osget("/collections/"+slug+"/stats").then(function(s){var d=(s.intervals||[]).filter(function(i){return i.interval==="one_day"})[0]||{};
-    return {slug:slug,n:c.name||slug,img:c.image_url||"",fl:+((s.total||{}).floor_price||0),vol:+(d.volume||0),ch:+(d.volume_change||0)*100,url:c.opensea_url}})
-   .catch(function(e){warn.push(e.message);return {slug:slug,n:c.name||slug,img:c.image_url||"",fl:0,vol:0,ch:0,url:c.opensea_url}})}))
- }).catch(function(e){warn.push(e.message);return []})}
+  return (t.collections||[]).map(function(c){return mk(c.collection||c.slug,c.name,c.image_url,c.opensea_url)})})
+ .catch(function(e){warn.push(e.message);return []})
+ .then(function(list){return list.length?list:fromMints((mints||[]).slice(0,7),warn)})
+ .then(function(list){return seq(list,function(c){return enrich(c,warn)})})}
 function fetchMints(warn){
  return rpc("eth_blockNumber",[]).then(function(h){var head=parseInt(h,16);
   return rpc("eth_getLogs",[{fromBlock:"0x"+(head-BLOCKS).toString(16),toBlock:"latest",topics:[TRANSFER,ZERO]}])}).then(function(logs){
   var m={};logs.forEach(function(l){if(l.topics.length===4)m[l.address]=(m[l.address]||0)+1});
   return Object.keys(m).map(function(a){return [a,m[a]]}).sort(function(a,b){return b[1]-a[1]})}).catch(function(e){warn.push("RPC "+e.message);return []})}
 function fetchDashboard(){var warn=[];
- return Promise.all([fetchCols(warn),fetchMints(warn)]).then(function(r){var cols=r[0],mt=r[1];var kinds=["hot","trend","trend","new","whale","trend","new"];
+ return fetchMints(warn).then(function(mt){return fetchCols(warn,mt).then(function(cols){return [cols,mt]})}).then(function(r){var cols=r[0],mt=r[1];var kinds=["hot","trend","trend","new","whale","trend","new"];
   cols.forEach(function(c,i){var ang=i*(2*Math.PI/Math.max(cols.length,1))-1,rad=36+i*(24/Math.max(cols.length,1));c.x=50+Math.cos(ang)*rad;c.y=50+Math.sin(ang)*rad;c.k=kinds[i%7];c.c="#17352b"});
   var vol=cols.reduce(function(s,c){return s+c.vol},0),fl=cols.filter(function(c){return c.fl}).map(function(c){return c.fl});
   return {warn:warn,cols:cols,
@@ -160,28 +179,32 @@ function fetchDashboard(){var warn=[];
    alerts:mt.slice(0,4).map(function(x){return ["&#127793;","New Mint Detected",short(x[0])+" ("+x[1]+" minted)","recent"]})}})}
 var $=function(i){return document.getElementById(i)};
 $("status").style.cursor="pointer";
-$("status").addEventListener("click",function(){var k=prompt("OpenSea API key (stays in this browser only):",ls("key"));if(k===null)return;ls("key",k.trim());
- var c=prompt("OpenSea chain identifier for Robinhood Chain:",chain());if(c)ls("chain",c.trim());load()});
+function setKey(){var k=prompt("OpenSea API key (stays in this browser only):",OS_KEY||ls("key"));if(k===null)return;ls("key",k.trim());
+ var c=prompt("OpenSea chain identifier for Robinhood Chain:",chain());if(c)ls("chain",c.trim());load()}
+$("status").addEventListener("click",setKey);$("diag").addEventListener("click",setKey);
+function diag(d){var el=$("diag"),w=[];(d.warn||[]).forEach(function(m){if(w.indexOf(m)<0)w.push(m)});
+ el.style.display=w.length?"block":"none";el.innerHTML=w.length?"<b>Why image/price is missing:</b> "+w.map(esc).join(" &middot; "):""}
 var KC={hot:"#ff4d4d",trend:"#19e38a",new:"#3aa0ff",whale:"#a066ff"};
 var DATA={stats:[],cols:[],alerts:[]},scanning=true;
-function fx(n){return Number(n||0).toFixed(n>=100?0:2)}
-function av(c){return c.img?'<img src="'+c.img+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">':'&#128444;'}
+function fx(n){n=Number(n||0);return n>=100?n.toFixed(0):n>=0.01?n.toFixed(2):n>0?n.toFixed(4):"0"}
+function fp(c){return c.fl?fx(c.fl)+" "+(c.sym||"ETH"):"-"}
+function av(c){return c.img?'<img src="'+esc(c.img)+'" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML=\'&#128444;\'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">':'&#128444;'}
 function esc(s){return String(s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
 function chg(c){return c.ch?'<span class="up">'+(c.ch>=0?'&#8593; ':'&#8595; ')+Math.abs(c.ch).toFixed(1)+'%</span>':''}
 function renderStats(){$("stats").innerHTML=DATA.stats.map(function(s){return '<div class="st"><small>'+s[3]+' '+s[0]+'</small><strong>'+s[1]+'</strong>'+(s[2]?'<span class="up">&#8593; '+s[2]+'</span>':'')+'</div>'}).join("")}
 function renderTrend(){var top=DATA.cols.slice().sort(function(a,b){return b.ch-a.ch}).slice(0,5);
- $("trend").innerHTML=top.length?top.map(function(c,i){return '<a class="row" style="color:inherit;text-decoration:none" href="'+esc(c.url||'#')+'" target="_blank" rel="noopener"><span class="rk">'+(i+1)+'</span><span class="av" style="background:'+c.c+';overflow:hidden">'+av(c)+'</span><div><div class="n">'+esc(c.n)+'</div><div class="f">Floor '+fx(c.fl)+' ETH</div></div><div class="p">'+chg(c)+'</div></a>'}).join(""):'<div class="empty">No trending data yet.</div>'}
+ $("trend").innerHTML=top.length?top.map(function(c,i){return '<a class="row" style="color:inherit;text-decoration:none" href="'+esc(c.url||'#')+'" target="_blank" rel="noopener"><span class="rk">'+(i+1)+'</span><span class="av" style="background:'+c.c+';overflow:hidden">'+av(c)+'</span><div><div class="n">'+esc(c.n)+'</div><div class="f">Floor '+fp(c)+'</div></div><div class="p">'+chg(c)+'</div></a>'}).join(""):'<div class="empty">No trending data yet.</div>'}
 function renderAlerts(){$("alerts").innerHTML=DATA.alerts.length?DATA.alerts.map(function(a){return '<div class="al"><span class="ic">'+a[0]+'</span><div>'+a[1]+'<small>'+esc(a[2])+'</small></div><time>'+a[3]+'</time></div>'}).join(""):'<div class="empty">No recent mints in the scanned blocks.</div>'}
 function renderHot(f){var l=DATA.cols.filter(function(c){return c.n.toLowerCase().indexOf(f)>-1}).slice(0,5);
- $("hotgrid").innerHTML=l.length?l.map(function(c){return '<div class="col"><div class="im" style="background:'+c.c+';overflow:hidden">'+av(c)+'</div><div class="bd"><b>'+esc(c.n)+'</b><div><span>Floor</span><span>'+fx(c.fl)+' ETH</span></div><div><span>Vol</span><span>'+fx(c.vol)+' ETH</span></div><div>'+chg(c)+'</div></div></div>'}).join(""):'<div class="empty">No collection matches.</div>'}
+ $("hotgrid").innerHTML=l.length?l.map(function(c){return '<div class="col"><div class="im" style="background:'+c.c+';overflow:hidden">'+av(c)+'</div><div class="bd"><b>'+esc(c.n)+'</b><div><span>Floor</span><span>'+fp(c)+'</span></div><div><span>Vol</span><span>'+fx(c.vol)+' ETH</span></div><div>'+chg(c)+'</div></div></div>'}).join(""):'<div class="empty">No collection matches.</div>'}
 function renderRadar(){var r=$("radar");r.querySelectorAll(".blip,.dot").forEach(function(n){n.remove()});
- DATA.cols.forEach(function(c){var b=document.createElement("a");b.className="blip";b.href=c.url||"#";b.target="_blank";b.rel="noopener";b.style.left=c.x+"%";b.style.top=c.y+"%";b.style.borderColor=KC[c.k];b.style.overflow="hidden";b.innerHTML=av(c);b.title=c.n+" - floor "+fx(c.fl)+" ETH";r.appendChild(b)});
+ DATA.cols.forEach(function(c){var b=document.createElement("a");b.className="blip";b.href=c.url||"#";b.target="_blank";b.rel="noopener";b.style.left=c.x+"%";b.style.top=c.y+"%";b.style.borderColor=KC[c.k];b.style.overflow="hidden";b.innerHTML=av(c);b.title=c.n+" - floor "+fp(c);r.appendChild(b)});
  for(var i=0;i<14;i++){var d=document.createElement("span");d.className="dot";d.style.left=(15+Math.random()*70)+"%";d.style.top=(15+Math.random()*70)+"%";r.appendChild(d)}}
 function renderAll(){renderStats();renderTrend();renderAlerts();renderHot($("q").value.trim().toLowerCase());renderRadar()}
 function load(){$("status").textContent="Scanning...";
  return fetchDashboard().then(function(d){DATA=d;renderAll();
-  $("status").textContent=d.warn&&d.warn.length?"Partial data (click to set key)":"Live";$("status").title=(d.warn||[]).join("\n")})
- .catch(function(){$("status").textContent="Server offline"})}
+  $("status").textContent=d.warn&&d.warn.length?"Partial data (click to set key)":"Live";$("status").title=(d.warn||[]).join("\n");diag(d)})
+ .catch(function(e){$("status").textContent="Error";diag({warn:[e.message]})})}
 $("q").addEventListener("input",function(e){renderHot(e.target.value.trim().toLowerCase())});
 document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("q").focus()}});
 document.querySelectorAll("nav button").forEach(function(b){b.addEventListener("click",function(){document.querySelectorAll("nav button").forEach(function(x){x.classList.remove("on")});b.classList.add("on")})});
