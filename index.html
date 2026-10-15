@@ -158,11 +158,11 @@ function fetchDashboard(){var warn=[];
   return {warn:warn,cols:cols,
    stats:[["Active NFT Contracts",String(mt.length),"","&#9776;"],["New Mints (scanned)",String(mt.reduce(function(s,x){return s+x[1]},0)),"","&#128293;"],["Floor Price (Avg)",fl.length?(fl.reduce(function(a,b){return a+b},0)/fl.length).toFixed(3)+" ETH":"-","","&#128142;"],["24h Volume (top 7)",vol.toFixed(2)+" ETH","","&#128202;"]],
    alerts:mt.slice(0,4).map(function(x){return ["&#127793;","New Mint Detected",short(x[0])+" ("+x[1]+" minted)","recent"]})}})}
+var $=function(i){return document.getElementById(i)};
 $("status").style.cursor="pointer";
 $("status").addEventListener("click",function(){var k=prompt("OpenSea API key (stays in this browser only):",ls("key"));if(k===null)return;ls("key",k.trim());
  var c=prompt("OpenSea chain identifier for Robinhood Chain:",chain());if(c)ls("chain",c.trim());load()});
 var KC={hot:"#ff4d4d",trend:"#19e38a",new:"#3aa0ff",whale:"#a066ff"};
-var $=function(i){return document.getElementById(i)};
 var DATA={stats:[],cols:[],alerts:[]},scanning=true;
 function fx(n){return Number(n||0).toFixed(n>=100?0:2)}
 function av(c){return c.img?'<img src="'+c.img+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">':'&#128444;'}
