@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NFT Radar - Robinhood Chain</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--bg:#060a09;--panel:#0b1210;--panel2:#0e1815;--line:#173a2f;--g:#19e38a;--g2:#0fb86d;--tx:#e9f2ee;--mu:#7e948b;--red:#ff4d4d;--blue:#3aa0ff;--pur:#a066ff;color-scheme:dark;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*:before,*:after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;
+background-image:radial-gradient(circle at 50% 0,#0c2a20 0,transparent 55%)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+.top{display:flex;align-items:center;gap:20px;padding:14px 22px;border-bottom:1px solid #0f241d}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:24px;letter-spacing:.5px;white-space:nowrap}
+.logo i{width:40px;height:40px;border-radius:50%;border:2px solid var(--g);display:grid;place-items:center;font-style:normal;color:var(--g);box-shadow:0 0 14px #19e38a55}
+.logo b{color:var(--g)}
+.search{flex:1;max-width:460px;margin:0 auto;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 14px;height:42px}
+.search input{flex:1;background:none;border:0;color:var(--tx);font:inherit;outline:0;min-width:0}
+.search kbd{color:var(--mu);font:inherit;font-size:12px}
+.wallet{border:1.5px solid var(--g);background:#0a2a1e;color:var(--g);border-radius:12px;padding:10px 16px;font-weight:700;white-space:nowrap}
+.wallet.on{background:var(--g);color:#04170f}
+.shell{display:grid;grid-template-columns:224px 1fr;gap:0}
+nav{padding:18px 14px;display:flex;flex-direction:column;gap:6px}
+nav button{display:flex;align-items:center;gap:14px;background:none;border:0;padding:12px 14px;border-radius:12px;color:#cfe0d8;text-align:left;font-weight:600}
+nav button.on{background:linear-gradient(90deg,#0f3a2a,#0b2a20);color:var(--g)}
+nav button:hover{background:#0d2219}
+.tag{margin-top:auto;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px;color:var(--mu);background:var(--panel)}
+.tag b{display:block;color:var(--tx);font-size:13px;margin-bottom:2px}
+main{padding:18px;display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:16px}
+.card{background:var(--panel);border:1px solid #11271f;border-radius:16px;padding:18px}
+.hero{display:grid;grid-template-columns:240px 1fr;gap:10px;grid-column:1}
+.hero h1{margin:0;font-size:46px;font-weight:800;letter-spacing:1px;line-height:1}
+.hero h1 b{color:var(--g)}
+.hero p{color:#aabdb4;margin:10px 0 18px;max-width:380px}
+.hhead{grid-column:1/3}
+.stats{display:flex;flex-direction:column;gap:10px}
+.st{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:12px 14px}
+.st small{color:var(--mu);font-size:12px}
+.st strong{display:block;font-size:22px;margin:2px 0}
+.up{color:var(--g);font-size:12px;font-weight:700}
+.radarwrap{position:relative;aspect-ratio:1;max-width:430px;width:100%;margin:auto}
+.radarwrap svg{width:100%;height:100%;display:block}
+.sweep{transform-origin:50% 50%;animation:spin 5s linear infinite}
+.paused .sweep{animation-play-state:paused}
+@keyframes spin{to{transform:rotate(360deg)}}
+.blip{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:12px;border:2px solid var(--g);display:grid;place-items:center;font-size:22px;cursor:pointer;box-shadow:0 0 12px #19e38a66;background:#10231c}
+.blip:hover{transform:scale(1.15)}
+.dot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 8px var(--g)}
+.legend{grid-column:1/3;display:flex;gap:18px;flex-wrap:wrap;color:#b6c9c0;font-size:12px;margin-top:6px}
+.legend span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--c)}
+.side{display:flex;flex-direction:column;gap:16px;grid-column:2;grid-row:1/3}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sh h2{margin:0;font-size:18px;font-weight:700}
+.sh a{color:var(--g);font-size:12px;text-decoration:none}
+.row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #12251e}
+.row:first-of-type{border-top:0}
+.rk{width:14px;color:var(--mu);text-align:center}
+.av{width:46px;height:46px;border-radius:10px;display:grid;place-items:center;font-size:24px;flex:none}
+.row .n{font-weight:700}
+.row .f{color:var(--mu);font-size:12px}
+.row .p{margin-left:auto;text-align:right}
+.al{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #12251e}
+.al:first-of-type{border-top:0}
+.al .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#0f2d22;flex:none}
+.al small{color:var(--mu);display:block}
+.al time{margin-left:auto;color:var(--mu);font-size:12px;white-space:nowrap}
+.hot{grid-column:1}
+.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.col{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.col .im{height:120px;display:grid;place-items:center;font-size:56px}
+.col .bd{padding:10px 12px;font-size:12px;color:var(--mu)}
+.col .bd b{display:block;color:var(--tx);font-size:14px;margin-bottom:6px}
+.col .bd div{display:flex;justify-content:space-between}
+.empty{color:var(--mu);padding:20px;grid-column:1/-1;text-align:center}
+.cta{grid-column:1/3;display:flex;align-items:center;gap:16px;border:1.5px solid var(--g);border-radius:16px;padding:16px 20px;background:linear-gradient(90deg,#0b2a1f,#09150f);box-shadow:0 0 18px #19e38a33}
+.cta .t{flex:1}
+.cta b{display:block;font-size:17px}
+.cta span{color:#a9c0b6;font-size:13px}
+.cta button{background:var(--g);color:#04170f;border:0;border-radius:10px;padding:11px 18px;font-weight:800}
+.pill{font-size:11px;color:#ffd166;border:1px solid #5a4a1c;background:#241d0a;border-radius:99px;padding:3px 9px;white-space:nowrap}
+@media(max-width:1100px){main{grid-template-columns:1fr}.side{grid-column:1;grid-row:auto}.cta{grid-column:1}.grid5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.shell{grid-template-columns:1fr}nav{flex-direction:row;overflow-x:auto;padding:8px 12px}nav button{white-space:nowrap;padding:9px 12px}.tag{display:none}
+.hero{grid-template-columns:1fr}.hhead{grid-column:1}.legend{grid-column:1}.hero h1{font-size:34px}.stats{display:grid;grid-template-columns:1fr 1fr}
+.top{flex-wrap:wrap;padding:12px}.search{order:3;flex-basis:100%;max-width:none}.grid5{grid-template-columns:repeat(2,minmax(0,1fr))}.cta{flex-wrap:wrap}main{padding:12px}}
+@media(prefers-reduced-motion:reduce){.sweep{animation:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><i>&#9678;</i><span>NFT <b>RADAR</b></span></div>
+  <label class="search"><span aria-hidden="true">&#128269;</span><input id="q" placeholder="Search collection, contract, or NFT..." aria-label="Search collections"><kbd>Ctrl K</kbd></label>
+  <span class="pill" id="status">Loading...</span>
+  
+</header>
+<div class="shell">
+  <nav aria-label="Main">
+    <button class="on">&#9889; Radar</button><button>&#128293; Trending</button><button>&#10024; New Mints</button><button>&#128081; Top Collections</button><button>&#128278; Watchlist</button><button>&#128091; Portfolio</button><button>&#9881; Settings</button>
+    <div class="tag"><b>Track. Discover. Win.</b>Robinhood Chain, chain ID 4663</div>
+  </nav>
+  <main id="app">
+    <section class="card hero" id="hero">
+      <div class="hhead"><h1>NFT <b>RADAR</b></h1><p>Scan the Robinhood Chain NFT universe. Find trending collections, new mints, and hidden gems before they blow up.</p></div>
+      <div class="stats" id="stats"></div>
+      <div class="radarwrap" id="radar">
+        <svg viewBox="0 0 400 400" aria-hidden="true">
+          <defs><radialGradient id="rg"><stop offset="0" stop-color="#19e38a" stop-opacity=".12"/><stop offset="1" stop-color="#19e38a" stop-opacity="0"/></radialGradient>
+          <linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#19e38a" stop-opacity="0"/><stop offset="1" stop-color="#19e38a" stop-opacity=".7"/></linearGradient></defs>
+          <circle cx="200" cy="200" r="190" fill="url(#rg)" stroke="#19e38a" stroke-width="3"/>
+          <g fill="none" stroke="#19e38a" stroke-opacity=".28"><circle cx="200" cy="200" r="140"/><circle cx="200" cy="200" r="90"/><circle cx="200" cy="200" r="40"/><path d="M10 200H390M200 10V390M66 66L334 334M334 66L66 334"/></g>
+          <g class="sweep"><path d="M200 200L390 200A190 190 0 0 0 334 66Z" fill="url(#sw)" transform="rotate(-45 200 200)"/></g>
+          <circle cx="200" cy="200" r="4" fill="#19e38a"/>
+        </svg>
+      </div>
+      <div class="legend"><span style="--c:var(--red)">Hot</span><span style="--c:var(--g)">Trending</span><span style="--c:var(--blue)">New Mint</span><span style="--c:var(--pur)">Whale Activity</span></div>
+    </section>
+    <aside class="side">
+      <section class="card"><div class="sh"><h2>&#128293; Top Trending</h2><a href="#">View All</a></div><div id="trend"></div></section>
+      <section class="card"><div class="sh"><h2>&#128276; Recent Alerts</h2><a href="#">View All</a></div><div id="alerts"></div></section>
+    </aside>
+    <section class="card hot">
+      <div class="sh"><h2>&#128293; Hot Collections</h2><a href="#">View All</a></div>
+      <p style="color:var(--mu);margin:-4px 0 12px;font-size:13px">Explore the most active and promising collections right now.</p>
+      <div class="grid5" id="hotgrid"></div>
+    </section>
+    <section class="cta"><div class="t"><b>Be the first to spot what's next.</b><span>Real-time data. Smarter insights. Better moves.</span></div><button id="scan">Start Scanning</button></section>
+  </main>
+</div>
+<script>
+/* ===== SETTINGS: edit here ===== */
+var RPC="https://rpc.mainnet.chain.robinhood.com",BLOCKS=3000;
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}}
+var OS="https://api.opensea.io/api/v2",TRANSFER="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",ZERO="0x"+"0".repeat(64);
+function chain(){return ls("chain")||"robinhood"}
+function osget(p){var k=ls("key");if(!k)return Promise.reject(new Error("No OpenSea API key (click the status pill)"));
+ return fetch(OS+p,{headers:{"x-api-key":k,accept:"application/json"}}).then(function(r){if(!r.ok)throw new Error("OpenSea "+r.status);return r.json()})}
+function rpc(m,p){return fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:m,params:p})}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error.message);return j.result})}
+function short(a){return a.slice(0,6)+"..."+a.slice(-4)}
+function fetchCols(warn){
+ return osget("/collections/top?sort_by=one_day_volume&chains="+encodeURIComponent(chain())+"&limit=7").then(function(t){
+  return Promise.all((t.collections||[]).map(function(c){var slug=c.collection||c.slug;
+   return osget("/collections/"+slug+"/stats").then(function(s){var d=(s.intervals||[]).filter(function(i){return i.interval==="one_day"})[0]||{};
+    return {slug:slug,n:c.name||slug,img:c.image_url||"",fl:+((s.total||{}).floor_price||0),vol:+(d.volume||0),ch:+(d.volume_change||0)*100,url:c.opensea_url}})
+   .catch(function(e){warn.push(e.message);return {slug:slug,n:c.name||slug,img:c.image_url||"",fl:0,vol:0,ch:0,url:c.opensea_url}})}))
+ }).catch(function(e){warn.push(e.message);return []})}
+function fetchMints(warn){
+ return rpc("eth_blockNumber",[]).then(function(h){var head=parseInt(h,16);
+  return rpc("eth_getLogs",[{fromBlock:"0x"+(head-BLOCKS).toString(16),toBlock:"latest",topics:[TRANSFER,ZERO]}])}).then(function(logs){
+  var m={};logs.forEach(function(l){if(l.topics.length===4)m[l.address]=(m[l.address]||0)+1});
+  return Object.keys(m).map(function(a){return [a,m[a]]}).sort(function(a,b){return b[1]-a[1]})}).catch(function(e){warn.push("RPC "+e.message);return []})}
+function fetchDashboard(){var warn=[];
+ return Promise.all([fetchCols(warn),fetchMints(warn)]).then(function(r){var cols=r[0],mt=r[1];var kinds=["hot","trend","trend","new","whale","trend","new"];
+  cols.forEach(function(c,i){var ang=i*(2*Math.PI/Math.max(cols.length,1))-1,rad=36+i*(24/Math.max(cols.length,1));c.x=50+Math.cos(ang)*rad;c.y=50+Math.sin(ang)*rad;c.k=kinds[i%7];c.c="#17352b"});
+  var vol=cols.reduce(function(s,c){return s+c.vol},0),fl=cols.filter(function(c){return c.fl}).map(function(c){return c.fl});
+  return {warn:warn,cols:cols,
+   stats:[["Active NFT Contracts",String(mt.length),"","&#9776;"],["New Mints (scanned)",String(mt.reduce(function(s,x){return s+x[1]},0)),"","&#128293;"],["Floor Price (Avg)",fl.length?(fl.reduce(function(a,b){return a+b},0)/fl.length).toFixed(3)+" ETH":"-","","&#128142;"],["24h Volume (top 7)",vol.toFixed(2)+" ETH","","&#128202;"]],
+   alerts:mt.slice(0,4).map(function(x){return ["&#127793;","New Mint Detected",short(x[0])+" ("+x[1]+" minted)","recent"]})}})}
+$("status").style.cursor="pointer";
+$("status").addEventListener("click",function(){var k=prompt("OpenSea API key (stays in this browser only):",ls("key"));if(k===null)return;ls("key",k.trim());
+ var c=prompt("OpenSea chain identifier for Robinhood Chain:",chain());if(c)ls("chain",c.trim());load()});
+var KC={hot:"#ff4d4d",trend:"#19e38a",new:"#3aa0ff",whale:"#a066ff"};
+var $=function(i){return document.getElementById(i)};
+var DATA={stats:[],cols:[],alerts:[]},scanning=true;
+function fx(n){return Number(n||0).toFixed(n>=100?0:2)}
+function av(c){return c.img?'<img src="'+c.img+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">':'&#128444;'}
+function esc(s){return String(s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
+function chg(c){return c.ch?'<span class="up">'+(c.ch>=0?'&#8593; ':'&#8595; ')+Math.abs(c.ch).toFixed(1)+'%</span>':''}
+function renderStats(){$("stats").innerHTML=DATA.stats.map(function(s){return '<div class="st"><small>'+s[3]+' '+s[0]+'</small><strong>'+s[1]+'</strong>'+(s[2]?'<span class="up">&#8593; '+s[2]+'</span>':'')+'</div>'}).join("")}
+function renderTrend(){var top=DATA.cols.slice().sort(function(a,b){return b.ch-a.ch}).slice(0,5);
+ $("trend").innerHTML=top.length?top.map(function(c,i){return '<a class="row" style="color:inherit;text-decoration:none" href="'+esc(c.url||'#')+'" target="_blank" rel="noopener"><span class="rk">'+(i+1)+'</span><span class="av" style="background:'+c.c+';overflow:hidden">'+av(c)+'</span><div><div class="n">'+esc(c.n)+'</div><div class="f">Floor '+fx(c.fl)+' ETH</div></div><div class="p">'+chg(c)+'</div></a>'}).join(""):'<div class="empty">No trending data yet.</div>'}
+function renderAlerts(){$("alerts").innerHTML=DATA.alerts.length?DATA.alerts.map(function(a){return '<div class="al"><span class="ic">'+a[0]+'</span><div>'+a[1]+'<small>'+esc(a[2])+'</small></div><time>'+a[3]+'</time></div>'}).join(""):'<div class="empty">No recent mints in the scanned blocks.</div>'}
+function renderHot(f){var l=DATA.cols.filter(function(c){return c.n.toLowerCase().indexOf(f)>-1}).slice(0,5);
+ $("hotgrid").innerHTML=l.length?l.map(function(c){return '<div class="col"><div class="im" style="background:'+c.c+';overflow:hidden">'+av(c)+'</div><div class="bd"><b>'+esc(c.n)+'</b><div><span>Floor</span><span>'+fx(c.fl)+' ETH</span></div><div><span>Vol</span><span>'+fx(c.vol)+' ETH</span></div><div>'+chg(c)+'</div></div></div>'}).join(""):'<div class="empty">No collection matches.</div>'}
+function renderRadar(){var r=$("radar");r.querySelectorAll(".blip,.dot").forEach(function(n){n.remove()});
+ DATA.cols.forEach(function(c){var b=document.createElement("a");b.className="blip";b.href=c.url||"#";b.target="_blank";b.rel="noopener";b.style.left=c.x+"%";b.style.top=c.y+"%";b.style.borderColor=KC[c.k];b.style.overflow="hidden";b.innerHTML=av(c);b.title=c.n+" - floor "+fx(c.fl)+" ETH";r.appendChild(b)});
+ for(var i=0;i<14;i++){var d=document.createElement("span");d.className="dot";d.style.left=(15+Math.random()*70)+"%";d.style.top=(15+Math.random()*70)+"%";r.appendChild(d)}}
+function renderAll(){renderStats();renderTrend();renderAlerts();renderHot($("q").value.trim().toLowerCase());renderRadar()}
+function load(){$("status").textContent="Scanning...";
+ return fetchDashboard().then(function(d){DATA=d;renderAll();
+  $("status").textContent=d.warn&&d.warn.length?"Partial data (click to set key)":"Live";$("status").title=(d.warn||[]).join("\n")})
+ .catch(function(){$("status").textContent="Server offline"})}
+$("q").addEventListener("input",function(e){renderHot(e.target.value.trim().toLowerCase())});
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("q").focus()}});
+document.querySelectorAll("nav button").forEach(function(b){b.addEventListener("click",function(){document.querySelectorAll("nav button").forEach(function(x){x.classList.remove("on")});b.classList.add("on")})});
+$("scan").textContent="Pause Scanning";
+$("scan").addEventListener("click",function(){scanning=!scanning;$("hero").classList.toggle("paused",!scanning);$("scan").textContent=scanning?"Pause Scanning":"Resume Scanning";if(scanning)load()});
+load();setInterval(function(){if(scanning)load()},60000);
+</script>
+</body>
+</html>
